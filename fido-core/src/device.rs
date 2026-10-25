@@ -67,7 +67,7 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> Device<'a, P, C, R>
         }
 
         // Other channels must be allocated before use
-        if command != Command::Init && msg.cid != ChannelId::BROADCAST && !self.channels.is_allocated(msg.cid) {
+        if command != Command::Init && !self.channels.is_allocated(msg.cid) {
             return error_response(msg.cid, HidError::InvalidChannel);
         }
 
