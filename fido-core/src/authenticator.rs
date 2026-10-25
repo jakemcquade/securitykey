@@ -85,13 +85,8 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> U2fAuthenticator<'a
 
                 // Match control byte
                 match control {
-                    // "Is this yours?" yes (6985)
-                    AuthControl::CheckOnly => {
-                        return U2fResponse::Status(StatusWord::ConditionsNotSatisfied);
-                    }
-
-                    // Key requires touch
-                    AuthControl::DontEnforceUserPresenceAndSign => {
+                    // "Is this yours?" yes (6985) / Don't Enforce: Key requires touch
+                    AuthControl::CheckOnly | AuthControl::DontEnforceUserPresenceAndSign => {
                         return U2fResponse::Status(StatusWord::ConditionsNotSatisfied);
                     }
                     AuthControl::EnforceUserPresenceAndSign => {}
