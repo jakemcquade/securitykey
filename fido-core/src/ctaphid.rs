@@ -257,7 +257,7 @@ impl Iterator for Fragments<'_> {
             let bcnt = (self.payload.len() as u16).to_be_bytes();
             report[5..7].copy_from_slice(&bcnt);
 
-            let n = self.payload.len().min(57);
+            let n = self.payload.len().min(INIT_DATA_LEN);
             report[7..7 + n].copy_from_slice(&self.payload[..n]);
             chunk_len = n;
         } else {
@@ -265,7 +265,7 @@ impl Iterator for Fragments<'_> {
             report[4] = self.next_seq;
 
             let remaining = self.payload.len() - self.offset;
-            let n = remaining.min(59);
+            let n = remaining.min(CONT_DATA_LEN);
             report[5..5 + n].copy_from_slice(&self.payload[self.offset..self.offset + n]);
             self.next_seq += 1;
             chunk_len = n;
