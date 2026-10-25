@@ -180,7 +180,7 @@ pub fn authentication_signed_data(
 }
 
 pub fn encode_public_key(key: &VerifyingKey) -> [u8; 65] {
-    let encoded = key.to_encoded_point(false);
+    let encoded = key.to_sec1_point(false);
     let mut out = [0u8; 65];
     out.copy_from_slice(encoded.as_bytes());
     out
