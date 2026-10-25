@@ -339,8 +339,7 @@ impl Iterator for Fragments<'_> {
         let cid = self.cid.0.to_be_bytes();
         report[0..4].copy_from_slice(&cid);
 
-        let chunk_len;
-        if is_init {
+        let chunk_len = if is_init {
             // Init packet
             report[4] = self.cmd;
 
@@ -349,7 +348,7 @@ impl Iterator for Fragments<'_> {
 
             let n = self.payload.len().min(INIT_DATA_LEN);
             report[7..7 + n].copy_from_slice(&self.payload[..n]);
-            chunk_len = n;
+            n
         } else {
             // Continuation packet
             report[4] = self.next_seq;
@@ -358,8 +357,8 @@ impl Iterator for Fragments<'_> {
             let n = remaining.min(CONT_DATA_LEN);
             report[5..5 + n].copy_from_slice(&self.payload[self.offset..self.offset + n]);
             self.next_seq += 1;
-            chunk_len = n;
-        }
+            n
+        };
 
         self.offset += chunk_len;
         if self.offset >= self.payload.len() {
