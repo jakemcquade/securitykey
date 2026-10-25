@@ -6,7 +6,7 @@
 pub mod constants;
 
 pub mod authenticator;
-pub mod transport;
-pub mod protocol;
-pub mod platform;
 pub mod crypto;
+pub mod platform;
+pub mod protocol;
+pub mod transport;

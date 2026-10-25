@@ -119,13 +119,22 @@ impl U2fResponse<'_> {
             U2fResponse::Status(sw) => {
                 let _ = out.extend_from_slice(&sw.to_bytes());
             }
-            U2fResponse::Authentication { user_presence, counter, signature } => {
+            U2fResponse::Authentication {
+                user_presence,
+                counter,
+                signature,
+            } => {
                 let _ = out.push(*user_presence);
                 let _ = out.extend_from_slice(&counter.to_be_bytes());
                 let _ = out.extend_from_slice(signature);
                 let _ = out.extend_from_slice(&StatusWord::NoError.to_bytes());
             }
-            U2fResponse::Registration { public_key, key_handle, attestation_cert, signature } => {
+            U2fResponse::Registration {
+                public_key,
+                key_handle,
+                attestation_cert,
+                signature,
+            } => {
                 let _ = out.push(0x05);
                 let _ = out.extend_from_slice(public_key);
                 let kh_bytes = key_handle.as_bytes();

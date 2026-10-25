@@ -1,17 +1,24 @@
 use heapless::Vec;
 use rand_core::CryptoRngCore;
 
-use crate::protocol::apdu::Apdu;
 use crate::authenticator::U2fAuthenticator;
 use crate::constants::{MAX_MESSAGE_LEN, REPORT_LEN, VERSION_BUILD, VERSION_MAJOR, VERSION_MINOR};
 use crate::platform::{CounterStore, Millis, UserPresence};
+use crate::protocol::apdu::Apdu;
 use crate::protocol::u2f::{U2fRequest, U2fResponse};
-use crate::transport::ctaphid::{Assembler, AssemblerOutput, Capabilities, ChannelAllocator, ChannelId, Command, HidError, InitResponse, Message, Packet};
+use crate::transport::ctaphid::{
+    Assembler, AssemblerOutput, Capabilities, ChannelAllocator, ChannelId, Command, HidError,
+    InitResponse, Message, Packet,
+};
 
 fn error_response(cid: ChannelId, error: HidError) -> HidResponse {
     let mut payload = Vec::new();
     let _ = payload.push(error as u8);
-    HidResponse { cid, cmd: Command::Error as u8, payload }
+    HidResponse {
+        cid,
+        cmd: Command::Error as u8,
+        payload,
+    }
 }
 
 #[derive(Debug)]
@@ -58,7 +65,7 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> Device<'a, P, C, R>
 
         let command = match Command::try_from(msg.cmd) {
             Ok(c) => c,
-            Err(_) => return error_response(msg.cid, HidError::InvalidCmd)
+            Err(_) => return error_response(msg.cid, HidError::InvalidCmd),
         };
 
         // Broadcast channel only supports INIT command
@@ -74,10 +81,18 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> Device<'a, P, C, R>
         // Route commands
         match command {
             Command::Init => self.handle_init(msg),
-            Command::Ping => HidResponse { cid: msg.cid, cmd: msg.cmd, payload: msg.payload },
-            Command::Wink => HidResponse { cid: msg.cid, cmd: msg.cmd, payload: Vec::new() },
+            Command::Ping => HidResponse {
+                cid: msg.cid,
+                cmd: msg.cmd,
+                payload: msg.payload,
+            },
+            Command::Wink => HidResponse {
+                cid: msg.cid,
+                cmd: msg.cmd,
+                payload: Vec::new(),
+            },
             Command::Msg => self.handle_msg(msg, now),
-            Command::Error => error_response(msg.cid, HidError::InvalidCmd)
+            Command::Error => error_response(msg.cid, HidError::InvalidCmd),
         }
     }
 
@@ -93,7 +108,7 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> Device<'a, P, C, R>
         let new_cid = if msg.cid == ChannelId::BROADCAST {
             match self.channels.allocate() {
                 Some(c) => c,
-                None => return error_response(msg.cid, HidError::Other)
+                None => return error_response(msg.cid, HidError::Other),
             }
         } else {
             msg.cid
@@ -111,7 +126,11 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> Device<'a, P, C, R>
 
         let mut payload = Vec::new();
         let _ = payload.extend_from_slice(&reply.to_bytes());
-        HidResponse { cid: msg.cid, cmd: Command::Init as u8, payload }
+        HidResponse {
+            cid: msg.cid,
+            cmd: Command::Init as u8,
+            payload,
+        }
     }
 
     fn handle_msg(&mut self, msg: Message, now: Millis) -> HidResponse {
@@ -120,10 +139,14 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> Device<'a, P, C, R>
             Ok(apdu) => match U2fRequest::parse(&apdu) {
                 Err(sw) => U2fResponse::Status(sw),
                 Ok(request) => self.authenticator.process(&request, now),
-            }
+            },
         };
 
         let payload = response.encode();
-        HidResponse { cid: msg.cid, cmd: Command::Msg as u8, payload }
+        HidResponse {
+            cid: msg.cid,
+            cmd: Command::Msg as u8,
+            payload,
+        }
     }
 }

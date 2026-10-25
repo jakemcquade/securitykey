@@ -63,16 +63,37 @@ impl<'a> Apdu<'a> {
         if rest.is_empty() {
             // Nothing after the length, it's requesting a response
             let le = if len == 0 { 65536 } else { len };
-            Ok(Apdu { cla, ins, p1, p2, data: &[], le: Some(le) })
+            Ok(Apdu {
+                cla,
+                ins,
+                p1,
+                p2,
+                data: &[],
+                le: Some(le),
+            })
         } else if rest.len() == len {
             // Exactly the right amount of data. Data only.
-            Ok(Apdu { cla, ins, p1, p2, data: rest, le: None })
+            Ok(Apdu {
+                cla,
+                ins,
+                p1,
+                p2,
+                data: rest,
+                le: None,
+            })
         } else if rest.len() == len + 2 {
             // x data bytes then 2 Le bytes.
             let data = &rest[..len];
             let le_raw = u16::from_be_bytes([rest[len], rest[len + 1]]) as usize;
             let le = if le_raw == 0 { 65536 } else { le_raw };
-            Ok(Apdu { cla, ins, p1, p2, data, le: Some(le) })
+            Ok(Apdu {
+                cla,
+                ins,
+                p1,
+                p2,
+                data,
+                le: Some(le),
+            })
         } else {
             Err(StatusWord::WrongLength) // Length doesn't match
         }

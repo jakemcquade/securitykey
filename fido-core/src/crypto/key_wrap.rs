@@ -1,12 +1,12 @@
-use zeroize::{ ZeroizeOnDrop, Zeroizing };
-use p256::ecdsa::SigningKey;
-use subtle::ConstantTimeEq;
 use hmac::{Hmac, Mac};
+use p256::ecdsa::SigningKey;
 use sha2::Sha256;
+use subtle::ConstantTimeEq;
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 fn hmac(key: &[u8], parts: &[&[u8]]) -> [u8; 32] {
-    let mut mac = <Hmac::<Sha256> as Mac>::new_from_slice(key)
-        .expect("HMAC can take key of any size");
+    let mut mac =
+        <Hmac<Sha256> as Mac>::new_from_slice(key).expect("HMAC can take key of any size");
     for p in parts {
         mac.update(p);
     }
@@ -46,8 +46,8 @@ pub fn wrap_key(
     nonce: &[u8; 32],
 ) -> Result<(KeyHandle, SigningKey), WrapError> {
     let private = Zeroizing::new(hmac(&secrets.derive, &[application, nonce]));
-    let signing_key = SigningKey::from_slice(private.as_slice())
-        .map_err(|_| WrapError::InvalidScalar)?;
+    let signing_key =
+        SigningKey::from_slice(private.as_slice()).map_err(|_| WrapError::InvalidScalar)?;
 
     let mac = hmac(&secrets.mac, &[application, private.as_slice()]);
     let mut key_handle = [0u8; 64];
@@ -57,7 +57,11 @@ pub fn wrap_key(
     Ok((KeyHandle(key_handle), signing_key))
 }
 
-pub fn unwrap_key(secrets: &MasterSecrets, application: &[u8; 32], key_handle: &[u8]) -> Option<SigningKey> {
+pub fn unwrap_key(
+    secrets: &MasterSecrets,
+    application: &[u8; 32],
+    key_handle: &[u8],
+) -> Option<SigningKey> {
     if key_handle.len() != 64 {
         return None;
     }

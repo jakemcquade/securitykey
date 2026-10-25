@@ -1,6 +1,8 @@
 use heapless::Vec;
 
-use crate::constants::{CONT_DATA_LEN, INIT_DATA_LEN, MAX_MESSAGE_LEN, REPORT_LEN, TRANSACTION_TIMEOUT_MS};
+use crate::constants::{
+    CONT_DATA_LEN, INIT_DATA_LEN, MAX_MESSAGE_LEN, REPORT_LEN, TRANSACTION_TIMEOUT_MS,
+};
 use crate::platform::Millis;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -30,25 +32,41 @@ impl TryFrom<u8> for Command {
             0x86 => Ok(Command::Init),
             0x88 => Ok(Command::Wink),
             0xBF => Ok(Command::Error),
-            other => Err(other)
+            other => Err(other),
         }
     }
 }
 
 #[derive(Debug)]
 pub enum Packet<'a> {
-    Init { cid: ChannelId, cmd: u8, bcnt: u16, data: &'a [u8] }, // 57 bytes
-    Cont { cid: ChannelId, seq: u8, data: &'a [u8] },            // 59 bytes
+    Init {
+        cid: ChannelId,
+        cmd: u8,
+        bcnt: u16,
+        data: &'a [u8],
+    }, // 57 bytes
+    Cont {
+        cid: ChannelId,
+        seq: u8,
+        data: &'a [u8],
+    }, // 59 bytes
 }
 
 impl<'a> Packet<'a> {
     pub fn parse(report: &'a [u8; REPORT_LEN]) -> Packet<'a> {
-        let cid = ChannelId(u32::from_be_bytes([report[0], report[1], report[2], report[3]]));
+        let cid = ChannelId(u32::from_be_bytes([
+            report[0], report[1], report[2], report[3],
+        ]));
         if report[4] & 0x80 != 0 {
             let cmd: u8 = report[4];
             let bcnt = u16::from_be_bytes([report[5], report[6]]);
             let data = &report[7..];
-            Packet::Init { cid, cmd, bcnt, data }
+            Packet::Init {
+                cid,
+                cmd,
+                bcnt,
+                data,
+            }
         } else {
             let seq = report[4];
             let data = &report[5..];
@@ -111,7 +129,9 @@ impl Default for Assembler {
 
 impl Assembler {
     pub fn new() -> Self {
-        Assembler { state: AssemblerState::Idle }
+        Assembler {
+            state: AssemblerState::Idle,
+        }
     }
 
     pub fn push(&mut self, packet: &Packet<'_>, now: Millis) -> AssemblerOutput {
@@ -119,26 +139,44 @@ impl Assembler {
         match state {
             AssemblerState::Idle => {
                 match packet {
-                    Packet::Init { cid, cmd, bcnt, data } => {
+                    Packet::Init {
+                        cid,
+                        cmd,
+                        bcnt,
+                        data,
+                    } => {
                         let bcnt = *bcnt as usize;
 
                         // Invalid length check
                         if bcnt > MAX_MESSAGE_LEN {
-                            return AssemblerOutput::Error { cid: *cid, error: HidError::InvalidLen };
+                            return AssemblerOutput::Error {
+                                cid: *cid,
+                                error: HidError::InvalidLen,
+                            };
                         }
 
                         let mut buffer = Vec::new();
                         if bcnt <= INIT_DATA_LEN {
                             // Complete message in init packet
                             if buffer.extend_from_slice(&data[..bcnt]).is_err() {
-                                return AssemblerOutput::Error { cid: *cid, error: HidError::Other };
+                                return AssemblerOutput::Error {
+                                    cid: *cid,
+                                    error: HidError::Other,
+                                };
                             }
 
-                            AssemblerOutput::Complete(Message { cid: *cid, cmd: *cmd, payload: buffer })
+                            AssemblerOutput::Complete(Message {
+                                cid: *cid,
+                                cmd: *cmd,
+                                payload: buffer,
+                            })
                         } else {
                             // Start receiving continuation packets
                             if buffer.extend_from_slice(data).is_err() {
-                                return AssemblerOutput::Error { cid: *cid, error: HidError::Other };
+                                return AssemblerOutput::Error {
+                                    cid: *cid,
+                                    error: HidError::Other,
+                                };
                             }
 
                             self.state = AssemblerState::Receiving {
@@ -153,37 +191,68 @@ impl Assembler {
                             AssemblerOutput::Pending
                         }
                     }
-                    Packet::Cont { .. } => AssemblerOutput::Ignored
+                    Packet::Cont { .. } => AssemblerOutput::Ignored,
                 }
-            },
-            AssemblerState::Receiving { cid, cmd, expected_len, mut buffer, next_seq, last_packet_at } => {
+            }
+            AssemblerState::Receiving {
+                cid,
+                cmd,
+                expected_len,
+                mut buffer,
+                next_seq,
+                last_packet_at,
+            } => {
                 match packet {
-                    Packet::Cont { cid: pcid, seq, data } => {
+                    Packet::Cont {
+                        cid: pcid,
+                        seq,
+                        data,
+                    } => {
                         // Not our channel
                         if *pcid != cid {
-                            self.state = AssemblerState::Receiving { cid, cmd, expected_len, buffer, next_seq, last_packet_at };
+                            self.state = AssemblerState::Receiving {
+                                cid,
+                                cmd,
+                                expected_len,
+                                buffer,
+                                next_seq,
+                                last_packet_at,
+                            };
                             return AssemblerOutput::Ignored;
                         }
 
                         // Wrong sequence
                         if *seq != next_seq {
-                            return AssemblerOutput::Error { cid, error: HidError::InvalidSeq }
+                            return AssemblerOutput::Error {
+                                cid,
+                                error: HidError::InvalidSeq,
+                            };
                         }
 
                         // Correct continuation packet
                         let remaining = expected_len - buffer.len();
                         let take = remaining.min(CONT_DATA_LEN);
                         if buffer.extend_from_slice(&data[..take]).is_err() {
-                            return AssemblerOutput::Error { cid, error: HidError::Other };
+                            return AssemblerOutput::Error {
+                                cid,
+                                error: HidError::Other,
+                            };
                         }
 
                         if buffer.len() >= expected_len {
                             // Complete message
-                            AssemblerOutput::Complete(Message { cid, cmd, payload: buffer })
+                            AssemblerOutput::Complete(Message {
+                                cid,
+                                cmd,
+                                payload: buffer,
+                            })
                         } else {
                             // Still receiving
                             self.state = AssemblerState::Receiving {
-                                cid, cmd, expected_len, buffer,
+                                cid,
+                                cmd,
+                                expected_len,
+                                buffer,
                                 next_seq: next_seq + 1,
                                 last_packet_at: now,
                             };
@@ -191,14 +260,27 @@ impl Assembler {
                             AssemblerOutput::Pending
                         }
                     }
-                    Packet::Init { cid: pcid, cmd: pcmd, bcnt: _, data: _ } => {
+                    Packet::Init {
+                        cid: pcid,
+                        cmd: pcmd,
+                        bcnt: _,
+                        data: _,
+                    } => {
                         // Init packet while receiving a message
                         if *pcid != cid {
                             self.state = AssemblerState::Receiving {
-                                cid, cmd, expected_len, buffer, next_seq, last_packet_at
+                                cid,
+                                cmd,
+                                expected_len,
+                                buffer,
+                                next_seq,
+                                last_packet_at,
                             };
-                        
-                            return AssemblerOutput::Error { cid: *pcid, error: HidError::ChannelBusy };
+
+                            return AssemblerOutput::Error {
+                                cid: *pcid,
+                                error: HidError::ChannelBusy,
+                            };
                         }
 
                         // Same channel. Check if init command.
@@ -206,19 +288,27 @@ impl Assembler {
                             return self.push(packet, now);
                         }
 
-                        AssemblerOutput::Error { cid, error: HidError::InvalidSeq }
+                        AssemblerOutput::Error {
+                            cid,
+                            error: HidError::InvalidSeq,
+                        }
                     }
                 }
-            },
+            }
         }
     }
 
     pub fn check_timeout(&mut self, now: Millis) -> Option<(ChannelId, HidError)> {
-        if let AssemblerState::Receiving { cid, last_packet_at, .. } = self.state
-            && now.0.saturating_sub(last_packet_at.0) >= TRANSACTION_TIMEOUT_MS {
-                self.state = AssemblerState::Idle;
-                return Some((cid, HidError::MsgTimeout));
-            }
+        if let AssemblerState::Receiving {
+            cid,
+            last_packet_at,
+            ..
+        } = self.state
+            && now.0.saturating_sub(last_packet_at.0) >= TRANSACTION_TIMEOUT_MS
+        {
+            self.state = AssemblerState::Idle;
+            return Some((cid, HidError::MsgTimeout));
+        }
         None
     }
 
@@ -303,7 +393,9 @@ impl Capabilities {
     pub const CBOR: Capabilities = Capabilities(0x04);
     pub const NMSG: Capabilities = Capabilities(0x08);
 
-    pub fn bits(self) -> u8 { self.0 }
+    pub fn bits(self) -> u8 {
+        self.0
+    }
 }
 
 pub struct InitResponse {
