@@ -215,7 +215,7 @@ impl Assembler {
 
     pub fn check_timeout(&mut self, now: Millis) -> Option<(ChannelId, HidError)> {
         if let AssemblerState::Receiving { cid, last_packet_at, .. } = self.state
-            && now.0 - last_packet_at.0 >= TRANSACTION_TIMEOUT_MS {
+            && now.0.saturating_sub(last_packet_at.0) >= TRANSACTION_TIMEOUT_MS {
                 self.state = AssemblerState::Idle;
                 return Some((cid, HidError::MsgTimeout));
             }
