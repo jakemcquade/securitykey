@@ -1,9 +1,9 @@
 use heapless::Vec;
 use p256::ecdsa::VerifyingKey;
 
-use crate::apdu::{Apdu, StatusWord};
-use crate::consts::MAX_MESSAGE_LEN;
-use crate::keys::KeyHandle;
+use crate::constants::MAX_MESSAGE_LEN;
+use crate::crypto::key_wrap::KeyHandle;
+use crate::protocol::apdu::{Apdu, StatusWord};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AuthControl {

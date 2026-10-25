@@ -1,12 +1,12 @@
 use heapless::Vec;
 use rand_core::CryptoRngCore;
 
-use crate::apdu::Apdu;
+use crate::protocol::apdu::Apdu;
 use crate::authenticator::U2fAuthenticator;
-use crate::consts::{MAX_MESSAGE_LEN, REPORT_LEN, VERSION_BUILD, VERSION_MAJOR, VERSION_MINOR};
-use crate::ctaphid::{Assembler, AssemblerOutput, Capabilities, ChannelAllocator, ChannelId, Command, HidError, InitResponse, Message, Packet};
+use crate::constants::{MAX_MESSAGE_LEN, REPORT_LEN, VERSION_BUILD, VERSION_MAJOR, VERSION_MINOR};
 use crate::platform::{CounterStore, Millis, UserPresence};
-use crate::u2f::{U2fRequest, U2fResponse};
+use crate::protocol::u2f::{U2fRequest, U2fResponse};
+use crate::transport::ctaphid::{Assembler, AssemblerOutput, Capabilities, ChannelAllocator, ChannelId, Command, HidError, InitResponse, Message, Packet};
 
 fn error_response(cid: ChannelId, error: HidError) -> HidResponse {
     let mut payload = Vec::new();

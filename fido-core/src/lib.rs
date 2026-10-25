@@ -3,11 +3,10 @@
 
 #![no_std]
 
-pub mod consts;
-pub mod apdu;
+pub mod constants;
+
 pub mod authenticator;
-pub mod ctaphid;
-pub mod device;
-pub mod keys;
+pub mod transport;
+pub mod protocol;
 pub mod platform;
-pub mod u2f;
+pub mod crypto;

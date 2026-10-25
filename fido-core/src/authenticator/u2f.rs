@@ -1,10 +1,10 @@
 use p256::ecdsa::{ Signature, signature::Signer, SigningKey};
 use rand_core::CryptoRngCore;
 
-use crate::apdu::StatusWord;
-use crate::keys::{MasterSecrets, unwrap_key, wrap_key};
+use crate::crypto::key_wrap::{MasterSecrets, unwrap_key, wrap_key};
 use crate::platform::{CounterStore, Millis, UserPresence};
-use crate::u2f::{AuthControl, SignatureBytes, U2fRequest, U2fResponse, authentication_signed_data, encode_public_key, registration_signed_data};
+use crate::protocol::apdu::StatusWord;
+use crate::protocol::u2f::{AuthControl, SignatureBytes, U2fRequest, U2fResponse, authentication_signed_data, encode_public_key, registration_signed_data};
 
 pub struct Attestation<'a> {
     pub key: SigningKey,

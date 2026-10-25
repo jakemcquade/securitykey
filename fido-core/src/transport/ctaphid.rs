@@ -1,6 +1,6 @@
 use heapless::Vec;
 
-use crate::consts::{CONT_DATA_LEN, INIT_DATA_LEN, MAX_MESSAGE_LEN, REPORT_LEN, TRANSACTION_TIMEOUT_MS};
+use crate::constants::{CONT_DATA_LEN, INIT_DATA_LEN, MAX_MESSAGE_LEN, REPORT_LEN, TRANSACTION_TIMEOUT_MS};
 use crate::platform::Millis;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
