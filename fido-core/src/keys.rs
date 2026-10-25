@@ -1,6 +1,6 @@
+use zeroize::{ ZeroizeOnDrop, Zeroizing };
 use p256::ecdsa::SigningKey;
 use subtle::ConstantTimeEq;
-use zeroize::ZeroizeOnDrop;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
@@ -45,11 +45,11 @@ pub fn wrap_key(
     application: &[u8; 32],
     nonce: &[u8; 32],
 ) -> Result<(KeyHandle, SigningKey), WrapError> {
-    let private = hmac(&secrets.derive, &[application, nonce]);
-    let signing_key = SigningKey::from_slice(&private)
+    let private = Zeroizing::new(hmac(&secrets.derive, &[application, nonce]));
+    let signing_key = SigningKey::from_slice(private.as_slice())
         .map_err(|_| WrapError::InvalidScalar)?;
 
-    let mac = hmac(&secrets.mac, &[application, &private]);
+    let mac = hmac(&secrets.mac, &[application, private.as_slice()]);
     let mut key_handle = [0u8; 64];
     key_handle[0..32].copy_from_slice(nonce);
     key_handle[32..64].copy_from_slice(&mac);
@@ -65,12 +65,12 @@ pub fn unwrap_key(secrets: &MasterSecrets, application: &[u8; 32], key_handle: &
     let nonce = &key_handle[0..32];
     let handle_mac = &key_handle[32..64];
 
-    let private = hmac(&secrets.derive, &[application, nonce]);
-    let expected_mac = hmac(&secrets.mac, &[application, &private]);
+    let private = Zeroizing::new(hmac(&secrets.derive, &[application, nonce]));
+    let expected_mac = hmac(&secrets.mac, &[application, private.as_slice()]);
     if handle_mac.ct_eq(&expected_mac).unwrap_u8() == 0 {
         return None;
     }
 
     // Valid MAC!
-    SigningKey::from_slice(&private).ok()
+    SigningKey::from_slice(private.as_slice()).ok()
 }
