@@ -280,15 +280,19 @@ impl Iterator for Fragments<'_> {
     }
 }
 
-pub fn fragment(cid: ChannelId, cmd: u8, payload: &[u8]) -> Fragments<'_> {
-    Fragments {
+pub fn fragment(cid: ChannelId, cmd: u8, payload: &[u8]) -> Option<Fragments<'_>> {
+    if payload.len() > MAX_MESSAGE_LEN {
+        return None;
+    }
+
+    Some(Fragments {
         cid,
         cmd,
         payload,
         offset: 0,
         next_seq: 0,
         done: false,
-    }
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
