@@ -64,8 +64,10 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> U2fAuthenticator<'a
                 // Sign the registration data with the attestation key
                 let signed = registration_signed_data(application, challenge, key_handle.as_bytes(), &public_key);
                 let sig: Signature = self.attestation.key.sign(&signed);
-                let signature = SignatureBytes::from_slice(sig.to_der().as_bytes())
-                    .expect("Signature should be valid DER in 72 bytes");
+                let signature = match SignatureBytes::from_slice(sig.to_der().as_bytes()) {
+                    Ok(s) => s,
+                    Err(_) => return U2fResponse::Status(StatusWord::NoPreciseDiagnosis),
+                };
 
                 U2fResponse::Registration {
                     public_key, key_handle,
@@ -110,8 +112,10 @@ impl<'a, P: UserPresence, C: CounterStore, R: CryptoRngCore> U2fAuthenticator<'a
                 let user_presence = 0x01;
                 let signed = authentication_signed_data(application, user_presence, counter, challenge);
                 let sig: Signature = signing_key.sign(&signed);
-                let signature = SignatureBytes::from_slice(sig.to_der().as_bytes())
-                    .expect("Signature should be valid DER in 72 bytes");
+                let signature = match SignatureBytes::from_slice(sig.to_der().as_bytes()) {
+                    Ok(s) => s,
+                    Err(_) => return U2fResponse::Status(StatusWord::NoPreciseDiagnosis),
+                };
 
                 U2fResponse::Authentication { user_presence, counter, signature }
             }
